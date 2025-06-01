@@ -1,8 +1,12 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import swisseph as swe
 import datetime
 import pytz
 from timezonefinder import TimezoneFinder
 from geopy.geocoders import Nominatim
+
+app = FastAPI()
 
 # Initialize Swiss Ephemeris
 swe.set_ephe_path(".")
@@ -33,7 +37,6 @@ KARANAS = [
     "Bava", "Balava", "Kaulava", "Taitila", "Gara", "Vanija", "Vishti",
     "Shakuni", "Chatushpada", "Naga", "Kimstughna"]
 
-# Malefic sets
 MALEFIC_TITHIS = {23, 29, 30}
 MALEFIC_NAKSHATRAS = {2, 5, 8, 10, 13, 18, 19, 26}
 MALEFIC_YOGAS = {17, 27, 19}
@@ -127,73 +130,51 @@ def travel_risk_level(panchanga, weekday, jd):
     else:
         return "Safe"
 
-def main():
-    import sys
-    for attempt in range(2):
-        location = input("Enter city and country (e.g., 'Mumbai, India'): ")
-        lat, lon = get_coordinates(location)
-        if lat is not None:
-            break
-        else:
-            print("Location not found. Please enter a valid location.")
-    else:
-        print("Bad input.")
-        sys.exit(1)
+# ✅ ADD THIS CLASS TO ACCEPT API INPUT:
+class RequestModel(BaseModel):
+    location: str
+    start_date: str
+    forecast_days: int
 
-    tz_name = get_timezone_for_coordinates(lat, lon)
-    timezone = pytz.timezone(tz_name)
+# ✅ ADD THIS FASTAPI ROUTE:
+@app.post("/forecast")
+def forecast(data: RequestModel):
+    lat, lon = get_coordinates(data.location)
+    if not lat:
+        raise HTTPException(400, "Invalid location")
+    timezone = pytz.timezone(get_timezone_for_coordinates(lat, lon))
+    try:
+        date = datetime.datetime.strptime(data.start_date, "%Y-%m-%d")
+        date = timezone.localize(date)
+    except:
+        raise HTTPException(400, "Invalid date format")
 
-    for attempt in range(2):
-        date_input = input("Enter start date (YYYY-MM-DD): ")
-        try:
-            date = datetime.datetime.strptime(date_input, "%Y-%m-%d")
-            date = timezone.localize(date)
-            break
-        except ValueError:
-            print("Invalid date format. Please enter date in YYYY-MM-DD format.")
-    else:
-        print("Bad input.")
-        sys.exit(1)
+    if not (1 <= data.forecast_days <= 30):
+        raise HTTPException(400, "Forecast days must be between 1 and 30")
 
-    for attempt in range(2):
-        try:
-            forecast_days = int(input("Enter number of forecast days (max 30): "))
-            if 1 <= forecast_days <= 30:
-                break
-            else:
-                print("Forecast days must be between 1 and 30.")
-        except:
-            print("Invalid forecast days input. Please enter an integer.")
-    else:
-        print("Bad input.")
-        sys.exit(1)
-
-    for i in range(forecast_days):
+    results = []
+    for i in range(data.forecast_days):
         target_date = date + datetime.timedelta(days=i)
         sunrise = calculate_sunrise(target_date, lat, lon, timezone)
-        if sunrise is None:
-            print("Could not calculate sunrise for:", target_date.strftime("%Y-%m-%d"))
+        if not sunrise:
             continue
         panchanga = calculate_panchanga_elements(sunrise, timezone)
         jd = swe.julday(target_date.year, target_date.month, target_date.day, 0)
-
-        print("\nPanchanga for", location, "on", target_date.strftime("%Y-%m-%d"))
-        print("Sunrise:", sunrise.strftime('%H:%M:%S %Z'))
-        print(f"Tithi: {panchanga['tithi'][1]} (#{panchanga['tithi'][0]})")
-        print(f"Nakshatra: {panchanga['nakshatra'][1]} (#{panchanga['nakshatra'][0]})")
-        print(f"Yoga: {panchanga['yoga'][1]} (#{panchanga['yoga'][0]})")
-        print(f"Karana: {panchanga['karana'][1]} (#{panchanga['karana'][0]})")
-
         lunar, solar = check_eclipse(jd)
-        if lunar and abs(lunar - jd) < 1:
-            print("Eclipse Info: Lunar Eclipse")
-        elif solar and abs(solar - jd) < 1:
-            print("Eclipse Info: Solar Eclipse")
-        else:
-            print("Eclipse Info: No Eclipse")
-
+        eclipse = "No Eclipse"
+        if lunar and abs(lunar - jd) < 1: eclipse = "Lunar Eclipse"
+        elif solar and abs(solar - jd) < 1: eclipse = "Solar Eclipse"
         risk = travel_risk_level(panchanga, target_date.weekday(), jd)
-        print("Travel Risk Level:", risk)
 
-if __name__ == "__main__":
-    main()
+        results.append({
+            "date": target_date.strftime("%Y-%m-%d"),
+            "sunrise": sunrise.strftime("%H:%M:%S %Z"),
+            "tithi": panchanga['tithi'][1],
+            "nakshatra": panchanga['nakshatra'][1],
+            "yoga": panchanga['yoga'][1],
+            "karana": panchanga['karana'][1],
+            "eclipse": eclipse,
+            "risk": risk
+        })
+
+    return {"location": data.location, "forecast": results}
