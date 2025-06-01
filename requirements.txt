@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+pydantic
+swisseph
+pytz
+timezonefinder
+geopy
