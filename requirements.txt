@@ -4,3 +4,4 @@ swisseph
 pytz
 geopy
 timezonefinder
+pyswisseph
