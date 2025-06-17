@@ -1,7 +1,6 @@
 fastapi
-uvicorn[standard]
-pydantic
+uvicorn
+swisseph
 pytz
-timezonefinder
 geopy
-pyswisseph
+timezonefinder
