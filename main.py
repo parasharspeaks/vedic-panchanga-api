@@ -5,7 +5,7 @@ import datetime
 import pytz
 from timezonefinder import TimezoneFinder
 from geopy.geocoders import Nominatim
-from typing import Optional
+from typing import Optional, List
 
 app = FastAPI()
 
@@ -72,4 +72,18 @@ class PanchangaRequest(BaseModel):
     date: Optional[str] = None
     time: Optional[str] = None
 
-# ... rest of the unchanged code remains the same
+class PanchangaItem(BaseModel):
+    date: str
+    sunrise: str
+    tithi: str
+    nakshatra: str
+    yoga: str
+    karana: str
+    eclipse: str
+    risk: str
+    remedy: str
+    disha_shool: str
+
+class PanchangaResponse(BaseModel):
+    forecast: List[PanchangaItem]
+    realtime: Optional[PanchangaItem] = None
