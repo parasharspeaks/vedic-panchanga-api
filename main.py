@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import pyswisseph as swe
+import swisseph as swe
 import datetime
 import pytz
 from timezonefinder import TimezoneFinder
