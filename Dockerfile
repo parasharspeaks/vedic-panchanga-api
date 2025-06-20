@@ -1,34 +1,26 @@
-# Use official Python image
+# Dockerfile
+
 FROM python:3.11-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    build-essential \
-    libffi-dev \
-    libgeos-dev \
-    curl \
+# Install any system build dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       build-essential \
+       libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
 WORKDIR /app
 
-# Copy requirements and install
+# Copy and install Python deps
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Copy app source code
+# Copy application code
 COPY . .
 
-# Set Swiss Ephemeris path if needed
-ENV SWEPHEPH=/app
-
-# Expose port
+# Expose the port Uvicorn will run on
 EXPOSE 8000
 
-# Start Uvicorn server
+# Launch the FastAPI app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
