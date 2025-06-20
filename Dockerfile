@@ -1,23 +1,25 @@
-# Base image with Python 3.11
+# Use official Python base image
 FROM python:3.11-slim
 
-# Set working directory
+# Set working directory in container
 WORKDIR /app
 
-# Install required system dependencies
-RUN apt-get update && \
-    apt-get install -y gcc libffi-dev libatlas-base-dev build-essential curl git && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install system dependencies required by swisseph and others
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libffi-dev \
+    gcc \
+    && apt-get clean
 
-# Copy requirements and install dependencies
+# Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# Copy all project files to container
 COPY . .
 
-# Expose port
-EXPOSE 10000
+# Expose port 8000 for FastAPI
+EXPOSE 8000
 
-# Run the API server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
+# Command to run the app
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
