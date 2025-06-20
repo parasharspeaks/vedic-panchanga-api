@@ -1,25 +1,34 @@
-# Use official Python base image
+# Use official Python image
 FROM python:3.11-slim
 
-# Set working directory in container
-WORKDIR /app
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies required by swisseph and others
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
+    gcc \
     build-essential \
     libffi-dev \
-    gcc \
-    && apt-get clean
+    libgeos-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Create app directory
+WORKDIR /app
+
+# Copy requirements and install
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy all project files to container
+# Copy app source code
 COPY . .
 
-# Expose port 8000 for FastAPI
+# Set Swiss Ephemeris path if needed
+ENV SWEPHEPH=/app
+
+# Expose port
 EXPOSE 8000
 
-# Command to run the app
+# Start Uvicorn server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
