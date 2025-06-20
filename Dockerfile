@@ -1,26 +1,17 @@
-# Dockerfile
-
 FROM python:3.11-slim
-
-# Install any system build dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       build-essential \
-       libffi-dev \
-    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy and install Python deps
-COPY requirements.txt .
-RUN pip install --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+# system libs for swisseph & geopy
+RUN apt-get update && \
+    apt-get install -y gcc build-essential libffi-dev libgeos-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy application code
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
 COPY . .
 
-# Expose the port Uvicorn will run on
 EXPOSE 8000
-
-# Launch the FastAPI app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
