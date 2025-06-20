@@ -1,7 +1,7 @@
-fastapi
-uvicorn
-pydantic
-pytz
-pyswisseph
-geopy
-timezonefinder
+fastapi==0.115.1
+uvicorn==0.34.0
+pydantic==2.11.1
+pytz==2025.2
+swisseph==2.10.3.2
+geopy==2.4.1
+timezonefinder==6.5.9
